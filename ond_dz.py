@@ -216,7 +216,7 @@ print('Kx=', Kx)
 R = 8.31451
 Lt = 1      
 p0m = 10**-3 * Kx**-3 * R * Lt
-print(p0m)
+print('p0m',p0m)
 
 #Подсчет молярной массы Mm по формуле (19) 
 Nc = len(Mi)
@@ -594,4 +594,68 @@ print(f"A_3 = {A3}")
 #Расчет приведенного давления pi по формуле (2)
 pi=pressure/p0m
 print('pi=', pi)
+tolerance = 1e-6
+iteration_count = 0
+delta_k = 0.8158610794967571
 
+#Итерационный расчет
+while True:
+    # Расчет нового значения Δδ^(k)
+    delta_delta_k = (pi / tau - (1 + A0) * delta_k) / (1 + A1)
+    
+    # Обновление значения δ^(k)
+    delta_k_new = delta_k + delta_delta_k
+    
+    # Расчет приведенного давления π^(k)_расч
+    pi_calculated = delta_k_new * tau * (1 + A0 + A1 * delta_k_new + A2 * delta_k_new**2 + A3 * delta_k_new**3)
+    
+    # Проверка условия завершения итерационного процесса
+    if abs(pi_calculated - pi) / pi < tolerance:
+        break
+    
+    # Обновление переменной для следующей итерации
+    delta_k = delta_k_new
+    iteration_count += 1
+
+# Вывод результатов
+print(delta_k_new, pi_calculated, iteration_count)
+
+#Расчет плотности по формуле (18)
+ro=Mm* Kx**-3 * delta_k_new
+print('ro=',ro)
+
+#Расчет коэффициента схимаемости по формуле (20)
+z=1+A0
+print('z=', z)
+
+
+
+theta = 1 / tau
+
+# Инициализация результата
+cp0i = []
+
+# Цикл для поэлементного расчёта
+for i in range(len(B0i)):
+    # Защита от деления на ноль
+    D_term = 0 if D0i[i] == 0 else (D0i[i] * theta / np.sinh(D0i[i] * theta))**2
+    F_term = 0 if F0i[i] == 0 else (F0i[i] * theta / np.cosh(F0i[i] * theta))**2
+    H_term = 0 if H0i[i] == 0 else (H0i[i] * theta / np.sinh(H0i[i] * theta))**2
+    J_term = 0 if J0i[i] == 0 else (J0i[i] * theta / np.cosh(J0i[i] * theta))**2
+
+    # Расчёт c_p0i для текущего компонента
+    cp = B0i[i] + C0i[i] * D_term + E0i[i] * F_term + G0i[i] * H_term + I0i[i] * J_term
+    cp0i.append(cp)
+
+# Преобразуем результат в массив numpy для удобства
+cp0i = np.array(cp0i)
+
+# Вывод результатов
+print("Рассчитанные значения cp0i:")
+print(cp0i)
+
+cp0r = np.sum(xi * cp0i)
+print('cp0r=',cp0r)
+
+adiabat=((1+A1+(1+A2)**2)/(cp0r-1-A3))/z
+print('adiabat=', adiabat)
